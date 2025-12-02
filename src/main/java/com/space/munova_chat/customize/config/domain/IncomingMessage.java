@@ -1,8 +1,11 @@
-package com.space.munova_chat.domain;
+package com.space.munova_chat.customize.config.domain;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class IncomingMessage {
     private String message;
     private Long chatId;

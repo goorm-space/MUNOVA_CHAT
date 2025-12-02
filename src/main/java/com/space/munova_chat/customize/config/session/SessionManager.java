@@ -1,4 +1,4 @@
-package com.space.munova_chat.session;
+package com.space.munova_chat.customize.config.session;
 
 import lombok.Getter;
 import org.springframework.stereotype.Component;

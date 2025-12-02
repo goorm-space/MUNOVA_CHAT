@@ -1,7 +1,11 @@
-package com.space.munova_chat.domain;
+package com.space.munova_chat.customize.config.domain;
 
 import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Builder
 public class OutGoingMessage {
     private String message;
