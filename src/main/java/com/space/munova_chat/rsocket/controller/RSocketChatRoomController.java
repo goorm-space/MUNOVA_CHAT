@@ -53,8 +53,9 @@ public class RSocketChatRoomController {
     public Mono<ResponseApi<List<ChatItemDto>>> getSellerChatRooms(Authentication authentication) {
 
         Long memberId = (Long) authentication.getPrincipal();
+        MemberRole role = (MemberRole) authentication.getAuthorities().iterator().next();
 
-        return chatService.getOneToOneChatRoomsBySeller(memberId)
+        return chatService.getOneToOneChatRoomsBySeller(memberId, role)
                 .collectList()
                 .map(ResponseApi::ok);
     }

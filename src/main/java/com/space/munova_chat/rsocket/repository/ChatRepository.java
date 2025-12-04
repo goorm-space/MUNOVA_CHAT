@@ -18,7 +18,7 @@ public interface ChatRepository extends ReactiveCrudRepository<Chat, Long> {
                 JOIN chat_member cm ON cm.chat_id = c.chat_id
                 WHERE cm.member_id = :memberId
                     AND c.type = :chatType
-                    AND c.status = :chatStatus
+                    AND (:chatStatus IS NULL OR c.status = :chatStatus)
                     AND cm.chat_member_type = :chatUserType
                 ORDER BY COALESCE(c.last_message_time, c.created_at) DESC
             """)
@@ -31,7 +31,7 @@ public interface ChatRepository extends ReactiveCrudRepository<Chat, Long> {
     @Query(""" 
                 SELECT c.*
                 FROM chat c
-                WHERE c.chat_id = : chatId
+                WHERE c.chat_id = :chatId
                     AND c.type = :chatType
                     AND c.status = 'OPENED'
             """)

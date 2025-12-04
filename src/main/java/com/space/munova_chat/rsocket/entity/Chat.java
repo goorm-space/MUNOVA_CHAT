@@ -75,14 +75,6 @@ public class Chat extends BaseEntity {
         this.lastMessageTime = time;
     }
 
-    public Chat oneToOneChatCloseBySeller() {
-        if (this.status == ChatStatus.CLOSED) {
-            throw ChatException.chatClosedException("ChatStatus : " + this.status);
-        }
-        this.status = ChatStatus.CLOSED;
-        return this;
-    }
-
     public void updateInfo(GroupChatUpdateRequestDto dto) {
         if (dto.maxParticipants() < curParticipant) {
             throw ChatException.invalidOperationException("Invalid max participants");
@@ -100,11 +92,12 @@ public class Chat extends BaseEntity {
         this.curParticipant += 1;
     }
 
-    public void updateChatStatus(ChatStatus status) {
+    public Chat updateChatStatus(ChatStatus status) {
         if (status == this.status) {
-            throw ChatException.chatClosedException("chatStatusClosed");
+            throw ChatException.invalidChangeException("Chat is already in status: " + this.status);
         }
         this.status = status;
+        return this;
     }
 
     public void decrementParticipant() {

@@ -64,7 +64,12 @@ public class ChatServiceImpl implements ChatService {
 
     /// 판매자가 참여중인 1:1 문의 채팅방 조회
     @Override
-    public Flux<ChatItemDto> getOneToOneChatRoomsBySeller(Long memberId) {
+    public Flux<ChatItemDto> getOneToOneChatRoomsBySeller(Long memberId, MemberRole role) {
+
+        if (role != MemberRole.SELLER) {
+            return Flux.error(ChatException.unauthorizedParticipantException("role : " + role));
+        }
+
         return chatRepository.findChatByTypeAndStatus(
                         memberId, ChatType.ONE_ON_ONE, ChatUserType.OWNER, null)
                 .map(ChatItemDto::of);
@@ -78,12 +83,12 @@ public class ChatServiceImpl implements ChatService {
             return Mono.error(ChatException.unauthorizedParticipantException("role : " + role));
         }
 
-        return getChatMemberOrThrow(chatId, memberId, ChatUserType.OWNER, ChatType.ONE_ON_ONE, ChatStatus.OPENED)
+        return getChatMemberOrThrow(chatId, memberId, ChatUserType.OWNER, ChatType.ONE_ON_ONE)
                 .map(ChatMember::getChatId)
                 .flatMap(chatRepository::findById)
                 .switchIfEmpty(Mono.error(ChatException.cannotFindChatException("chatId : " + chatId)))
                 .flatMap(chat ->
-                        chatRepository.save(chat.oneToOneChatCloseBySeller()))
+                        chatRepository.save(chat.updateChatStatus(ChatStatus.CLOSED)))
                 .map(ChatInfoResponseDto::of);
     }
 
@@ -111,8 +116,7 @@ public class ChatServiceImpl implements ChatService {
     ///  그룹 채팅방 검색
     @Override
     public Flux<GroupChatInfoResponseDto> searchGroupChatRooms(String keyword, List<Long> tagIds, Boolean isMine, Long memberId) {
-
-        List<Long> safeList = tagIds == null ? List.of() : tagIds;
+        List<Long> safeList = (tagIds == null) ? List.of() : tagIds;
         return chatRepositoryCustom.searchGroupChats(keyword, safeList, memberId, isMine)
                 .flatMap(this::convertToInfoDto);
     }
@@ -127,7 +131,7 @@ public class ChatServiceImpl implements ChatService {
     ///  내가 생성한 그룹 채팅방 정보 수정(최대 인원, 상태 변경)
     @Override
     public Mono<GroupChatInfoResponseDto> updateGroupChatInfo(Long chatId, GroupChatUpdateRequestDto updateDto, Long memberId) {
-        return getChatMemberOrThrow(chatId, memberId, ChatUserType.OWNER, ChatType.GROUP, null)
+        return getChatMemberOrThrow(chatId, memberId, ChatUserType.OWNER, ChatType.GROUP)
                 .flatMap(cm -> chatRepository.findById(chatId)
                         .switchIfEmpty(Mono.error(ChatException.cannotFindChatException("chatId : " + chatId))))
                 .flatMap(chat -> {
@@ -160,8 +164,9 @@ public class ChatServiceImpl implements ChatService {
                     Member mem = chatWithMember.member();
 
                     return chatMemberRepository.existsMemberInChat(chatId, mem.getId())
-                            .flatMap(exists -> {
-                                if (exists) return Mono.empty();   // 이미 참여중이면 종료
+                            .flatMap(cnt -> {
+                                if (cnt > 0)
+                                    return Mono.error(ChatException.alreadyJoinedChat("chatId : " + chatId));   // 이미 참여중이면 종료
 
                                 chat.incrementParticipant();
                                 return chatRepository.save(chat).then(
@@ -173,7 +178,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public Mono<Void> leaveGroupChat(Long chatId, Long memberId) {
-        return getChatMemberOrThrow(chatId, memberId, ChatUserType.MEMBER, ChatType.GROUP, null)
+        return getChatMemberOrThrow(chatId, memberId, ChatUserType.MEMBER, ChatType.GROUP)
                 .flatMap(cm -> chatRepository.findById(chatId)
                         .switchIfEmpty(Mono.error(ChatException.cannotFindChatException("chatId : " + chatId)))
                         .map(chat -> new ChatWithChatMember(chat, cm)))
@@ -191,31 +196,38 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public Mono<Void> closeGroupChat(Long chatId, Long memberId) {
-        return getChatMemberOrThrow(chatId, memberId, ChatUserType.OWNER, ChatType.GROUP, ChatStatus.OPENED)
+        return getChatMemberOrThrow(chatId, memberId, ChatUserType.OWNER, ChatType.GROUP)
                 .flatMap(cm -> chatRepository.findById(chatId)
                         .switchIfEmpty(Mono.error(ChatException.cannotFindChatException("chatId : " + chatId))))
-                .flatMap(chat -> {
-                    chat.updateChatStatus(ChatStatus.CLOSED);
-                    return chatRepository.save(chat).then();
-                });
+                .flatMap(chat ->
+                        chatRepository.save(chat.updateChatStatus(ChatStatus.CLOSED)))
+                .then();
     }
 
     @Override
     public Mono<Void> openGroupChat(Long chatId, Long memberId) {
-        return getChatMemberOrThrow(chatId, memberId, ChatUserType.OWNER, ChatType.GROUP, ChatStatus.CLOSED)
+        return getChatMemberOrThrow(chatId, memberId, ChatUserType.OWNER, ChatType.GROUP)
                 .flatMap(cm -> chatRepository.findById(chatId)
                         .switchIfEmpty(Mono.error(ChatException.cannotFindChatException("chatId : " + chatId))))
-                .flatMap(chat -> {
-                    chat.updateChatStatus(ChatStatus.OPENED);
-                    return chatRepository.save(chat).then();
-                });
+                .flatMap(chat ->
+                        chatRepository.save(chat.updateChatStatus(ChatStatus.OPENED)))
+                .then();
+
     }
 
     @Override
     public Mono<GroupChatDetailResponseDto> getGroupChatDetail(Long chatId, Long memberId) {
 
         return chatMemberRepository.existsMemberInChat(chatId, memberId)
-                .flatMap(exists -> exists ? Mono.empty() : Mono.error(ChatException.unauthorizedParticipantException("chatId=" + chatId)))
+                .flatMap(cnt -> {
+                    log.info("cnt : " + cnt);
+                    log.info("cnt : " + cnt.getClass());
+                    if (cnt > 0) {
+                        return Mono.empty();
+                    } else {
+                        return Mono.error(ChatException.unauthorizedParticipantException("chatId : " + chatId));
+                    }
+                })
                 .then(
                         Mono.zip(
                                 chatRepository.findById(chatId)
@@ -291,8 +303,8 @@ public class ChatServiceImpl implements ChatService {
         return productName + " - " + buyerName;
     }
 
-    private Mono<ChatMember> getChatMemberOrThrow(Long chatId, Long memberId, ChatUserType type, ChatType chatType, ChatStatus status) {
-        return chatMemberRepository.findChatMember(chatId, memberId, status, chatType, type)
+    private Mono<ChatMember> getChatMemberOrThrow(Long chatId, Long memberId, ChatUserType type, ChatType chatType) {
+        return chatMemberRepository.findChatMember(chatId, memberId, chatType, type)
                 .switchIfEmpty(Mono.error(ChatException.unauthorizedParticipantException("chatId : " + chatId)));
     }
 

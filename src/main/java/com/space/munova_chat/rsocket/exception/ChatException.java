@@ -21,8 +21,8 @@ public class ChatException extends BaseException {
         return new ChatException("CHAT_03", "채팅방에 대한 권한이 없습니다.", HttpStatus.UNAUTHORIZED, detailMessage);
     }
 
-    public static ChatException chatClosedException(String... detailMessage) {
-        return new ChatException("CHAT_04", "이미 종료된 채팅방입니다.", HttpStatus.CONFLICT, detailMessage);
+    public static ChatException invalidChangeException(String... detailMessage) {
+        return new ChatException("CHAT_04", "잘못된 상태 변경 요청입니다.", HttpStatus.CONFLICT, detailMessage);
     }
 
     public static ChatException duplicateChatNameException(String... detailMessage) {
@@ -43,5 +43,9 @@ public class ChatException extends BaseException {
 
     public static ChatException cannotDecrementParticipantsException() {
         return new ChatException("CHAT_09", "참여자 수 0 이하로 감소 불가", HttpStatus.BAD_REQUEST);
+    }
+
+    public static ChatException alreadyJoinedChat(String... detailMessage) {
+        return new ChatException("CHAT_10", "이미 참여중인 채팅방입니다.", HttpStatus.BAD_REQUEST, detailMessage);
     }
 }

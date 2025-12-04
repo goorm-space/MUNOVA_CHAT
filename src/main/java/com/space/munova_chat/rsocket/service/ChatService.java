@@ -13,7 +13,7 @@ public interface ChatService {
 
     Flux<ChatItemDto> getOneToOneChatRoomsByMember(Long memberId);
 
-    Flux<ChatItemDto> getOneToOneChatRoomsBySeller(Long memberId);
+    Flux<ChatItemDto> getOneToOneChatRoomsBySeller(Long memberId, MemberRole role);
 
     Mono<ChatInfoResponseDto> setChatRoomClosed(Long chatId, Long memberId, MemberRole role);
 
