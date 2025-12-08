@@ -38,8 +38,14 @@ dependencies {
     implementation 'dev.miku:r2dbc-mysql:0.8.2.RELEASE'
     implementation "io.netty:netty-resolver-dns-native-macos:4.2.7.Final:osx-aarch_64"
     implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.security:spring-security-rsocket'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+//    implementation 'org.springframework.security:spring-security-rsocket'
     implementation 'org.springframework.security:spring-security-messaging'
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb-reactive'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    implementation 'org.springframework.boot:spring-boot-starter-amqp:4.0.0'
+
+
     testImplementation 'org.springframework.security:spring-security-test'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

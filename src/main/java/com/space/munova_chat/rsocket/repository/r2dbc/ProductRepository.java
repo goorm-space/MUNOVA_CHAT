@@ -1,4 +1,4 @@
-package com.space.munova_chat.rsocket.repository;
+package com.space.munova_chat.rsocket.repository.r2dbc;
 
 import com.space.munova_chat.rsocket.entity.Product;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;

@@ -1,6 +1,7 @@
 package com.space.munova_chat.rsocket.controller;
 
 import com.space.munova_chat.rsocket.config.RoomSessionManager;
+import io.rsocket.RSocket;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.rsocket.RSocketRequester;
@@ -18,6 +19,12 @@ public class RSocketConnectHandler {
 
     @ConnectMapping
     public Mono<Void> onConnect(RSocketRequester requester) {
+        RSocket raw = requester.rsocket();
+        log.info("raw {} ", raw);
+//        Long userId = sessionManager.getUserIdByRawSocket(raw);
+//        log.info("RSocket connected with userId {}", userId);
+//        sessionManager.registerRequester(requester, userId);
+
         sessionManager.onConnect(requester);
         log.info("🟢 RSocket CONNECT 성공! requester={}", requester);
         return Mono.empty();

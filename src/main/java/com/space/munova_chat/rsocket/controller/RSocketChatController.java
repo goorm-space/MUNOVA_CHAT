@@ -21,8 +21,7 @@ public class RSocketChatController {
 
     @MessageMapping("chat.send")
     public Mono<Void> send(ChatMessage chatMessage) {
-        chatService.sendMessage(chatMessage);
-        return Mono.empty();
+        return chatService.sendMessage(chatMessage);
     }
 
     @MessageMapping("chat.stream.{chatId}")
@@ -30,11 +29,13 @@ public class RSocketChatController {
         return chatService.stream(chatId);
     }
 
-    @MessageMapping("chat.join")
-    public Mono<Void> join(@Payload ChatMessage msg, RSocketRequester rSocketRequester) {
+    @MessageMapping("join")
+    public Mono<String> join(@Payload ChatMessage msg, RSocketRequester rSocketRequester) {
         log.info("JOIN {}", msg);
-        chatService.join(msg, rSocketRequester);
-        return Mono.empty();
+        return chatService.join(msg, rSocketRequester)
+                .doOnSuccess(v -> log.info("JOIN COMPLETE {}", msg))
+                .doOnError(e -> log.error("JOIN ERROR {}", e.getMessage(), e))
+                .thenReturn("Join complete");
     }
 
 

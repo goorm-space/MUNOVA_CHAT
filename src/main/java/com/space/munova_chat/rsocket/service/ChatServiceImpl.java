@@ -9,7 +9,7 @@ import com.space.munova_chat.rsocket.enums.ProductCategory;
 import com.space.munova_chat.rsocket.exception.ChatException;
 import com.space.munova_chat.rsocket.exception.MemberException;
 import com.space.munova_chat.rsocket.exception.ProductException;
-import com.space.munova_chat.rsocket.repository.*;
+import com.space.munova_chat.rsocket.repository.r2dbc.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

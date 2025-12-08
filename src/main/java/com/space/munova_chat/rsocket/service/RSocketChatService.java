@@ -1,7 +1,10 @@
 package com.space.munova_chat.rsocket.service;
 
 import com.space.munova_chat.rsocket.config.RoomSessionManager;
+import com.space.munova_chat.rsocket.entity.Message;
 import com.space.munova_chat.rsocket.model.ChatMessage;
+import com.space.munova_chat.rsocket.repository.mongodb.MessageMongoRepository;
+import com.space.munova_chat.rsocket.repository.r2dbc.MessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.rsocket.RSocketRequester;
@@ -10,6 +13,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -19,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RSocketChatService {
 
     private final RoomSessionManager sessionManager;
+    private final MessageRepository messageRepository;
+    private final MessageMongoRepository messageMongoRepository;
 
     // 채팅방 별 메시지 Sink
     private final Map<Long, Sinks.Many<ChatMessage>> roomSinks = new ConcurrentHashMap<>();
@@ -38,11 +44,19 @@ public class RSocketChatService {
     }
 
     // 해당 채팅방 SINK로 메시지 전송
-    public void sendMessage(ChatMessage msg) {
+    public Mono<Void> sendMessage(ChatMessage msg) {
         log.info("SEND {}", msg.toString());
 
+        Message message = Message.createMessage(msg.getContent(), msg.getType(), msg.getChatId(), msg.getSenderId());
+
         // Flux로 구독중인 사용자들에게 메시지 브로드캐스트
-        getSink(msg.getChatId()).tryEmitNext(msg);  // -> 얘가 병목 잡힐 수 있음 테스트 시 참고 ㄱㄱ
+//        return messageRepository.save(message)
+        return messageMongoRepository.save(message)
+                        .doOnNext(saved -> {
+                                ChatMessage out = new ChatMessage(saved.getType(), saved.getChatId(), saved.getUserId(), saved.getContent(), saved.getCreatedAt().atZone(ZoneId.of("UTC")).toInstant().toEpochMilli());
+                                getSink(saved.getChatId()).tryEmitNext(msg);
+                        })
+                        .then();
     }
 
     // STREAM 구독(메시지 전송 출구)

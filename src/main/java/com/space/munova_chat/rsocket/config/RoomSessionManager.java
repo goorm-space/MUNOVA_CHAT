@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.stereotype.Component;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,7 +23,6 @@ public class RoomSessionManager {
     // RSocketRequester -> chatId
     private final Map<RSocketRequester, Set<Long>> requesterChatMap = new ConcurrentHashMap<>();
 
-
     // connect
     public void onConnect(RSocketRequester requester) {
         requester.rsocket()
@@ -31,15 +31,12 @@ public class RoomSessionManager {
                 .subscribe();
     }
 
-
     // chat join
     public void joinChat(Long chatId, Long userId, RSocketRequester requester) {
-        // requester -> userId
-        requesterUserMap.put(requester, userId);
-
         // userId -> requester
         userSessions.computeIfAbsent(userId, k -> ConcurrentHashMap.newKeySet())
                 .add(requester);
+        log.info("Join chat with id {} and user id {}", chatId, userId);
 
         // chatId -> requester
         roomSessions.computeIfAbsent(chatId, k -> ConcurrentHashMap.newKeySet())
@@ -48,6 +45,10 @@ public class RoomSessionManager {
         // requester -> chatId
         requesterChatMap.computeIfAbsent(requester, k -> ConcurrentHashMap.newKeySet())
                 .add(chatId);
+
+        log.info("roomSessions raw = {}", roomSessions);
+        log.info("userSessions raw = {}", userSessions);
+        log.info("requesterChatMap raw = {}", requesterChatMap);
     }
 
     // leave chat
@@ -66,7 +67,7 @@ public class RoomSessionManager {
     // clean up -> onClose
     public void cleanUp(RSocketRequester requester) {
         Set<Long> chatIds = requesterChatMap.remove(requester);
-        if(chatIds != null) {
+        if (chatIds != null) {
             for (Long chatId : chatIds) {
                 Set<RSocketRequester> roomSet = roomSessions.get(chatId);
                 if (roomSet != null) {
@@ -76,7 +77,7 @@ public class RoomSessionManager {
         }
 
         Long userId = requesterUserMap.remove(requester);
-        if(userId != null) {
+        if (userId != null) {
             Set<RSocketRequester> userSet = userSessions.get(userId);
             if (userSet != null) {
                 userSet.remove(requester);
@@ -87,6 +88,10 @@ public class RoomSessionManager {
     // broadCast 용도 -> chatId에 연결된 Session 목록 조회
     public Set<RSocketRequester> getRoomSessions(Long chatId) {
         return roomSessions.getOrDefault(chatId, Set.of());
+    }
+
+    public void registerRequester(RSocketRequester requester, Long userId) {
+        requesterUserMap.put(requester, userId);
     }
 }
 
