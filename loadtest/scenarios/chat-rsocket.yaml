@@ -1,0 +1,44 @@
+config:
+  target: "ws://localhost:7070/rs"
+
+  engines:
+    rsocket: "../engines/rsocket"
+
+  processor: "../data/auth.js"
+
+  phases:
+    - duration: 5
+      arrivalRate: 1    # 1명씩만 테스트
+
+scenarios:
+  - engine: rsocket
+    name: "RSocket Chat Functional Test"
+
+    flow:
+      - function: "pickAuth"
+      - log: "Using memberId={{ memberId }} token={{ token }}"
+
+      # 1) JOIN 전송
+      - execute:
+          engine: rsocket
+          action: send
+          params:
+            route: "chat.join"
+            payload:
+              chatId: 999
+              senderId: "{{ memberId }}"
+              type: "JOIN"
+
+      - think: 1
+
+      # 2) 메시지 전송
+      - execute:
+          engine: rsocket
+          action: send
+          params:
+            route: "chat.send"
+            payload:
+              chatId: 999
+              senderId: "{{ memberId }}"
+              content: "hello artillery!"
+              type: "SEND"

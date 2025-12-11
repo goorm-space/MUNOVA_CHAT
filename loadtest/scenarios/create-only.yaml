@@ -1,0 +1,30 @@
+config:
+  target: "http://localhost:8082"
+  phases:
+    - duration: 1
+      arrivalRate: 5   # 초당 5명 = 동시 5명 수준
+      name: "5 users create chat"
+
+  processor: "../data/auth.js"
+
+  variables:
+    productId: 4
+
+scenarios:
+  - name: "Only 1:1 ChatRoom Create Load Test"
+    flow:
+      # 토큰 + memberId 세팅
+      - function: "pickAuth"
+      - log: "Using memberId={{ memberId }} token={{ token }}"
+
+      # 채팅방 생성 요청
+      - post:
+          url: "/api/chat/one-to-one/{{ productId }}"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode: 201
+          capture:
+            - json: "$.data.chatId"
+              as: "chatId"
+      - log: "ChatRoom created → chatId={{ chatId }}"

@@ -25,8 +25,8 @@ public class RSocketChatController {
     }
 
     @MessageMapping("chat.stream.{chatId}")
-    public Flux<ChatMessage> stream(@DestinationVariable Long chatId) {
-        return chatService.stream(chatId);
+    public Flux<ChatMessage> stream(@DestinationVariable Long chatId, @Payload Long memberId, RSocketRequester requester) {
+        return chatService.stream(chatId, memberId, requester);
     }
 
     @MessageMapping("join")

@@ -1,5 +1,10 @@
 package com.space.munova_chat.rsocket.config;
 
+import io.netty.channel.ChannelOption;
+import io.netty.channel.WriteBufferWaterMark;
+import io.rsocket.frame.decoder.PayloadDecoder;
+import org.springframework.boot.reactor.netty.NettyReactiveWebServerFactory;
+import org.springframework.boot.rsocket.server.RSocketServerCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.EnableReactiveMongoAuditing;
@@ -58,11 +63,25 @@ public class RsocketConfig {
         return handler;
     }
 
-//    @Bean
-//    public RSocketServerCustomizer rSocketServerCustomizer(PayloadSocketAcceptorInterceptor securityInterceptor, RSocketMessageHandler handler) {
-//        return server -> server
-//                .interceptors(reg -> reg.forSocketAcceptor(securityInterceptor))
-//                .acceptor(handler.responder());
-//    }
+    @Bean
+    public RSocketServerCustomizer rSocketServerCustomizer() {
+        return server -> server
+//                .fragment(64 * 1024)
+//                .maxInboundPayloadSize(16 * 1024 * 1024)
+                .payloadDecoder(PayloadDecoder.ZERO_COPY);
+    }
+
+    @Bean
+    public NettyReactiveWebServerFactory nettyFactory() {
+        NettyReactiveWebServerFactory factory = new NettyReactiveWebServerFactory();
+
+        factory.addServerCustomizers(httpServer ->
+                httpServer.tcpConfiguration(tcp ->
+                        tcp.option(ChannelOption.WRITE_BUFFER_WATER_MARK,
+                                new WriteBufferWaterMark(64 * 1024, 128 * 1024))
+                )
+        );
+        return factory;
+    }
 
 }
